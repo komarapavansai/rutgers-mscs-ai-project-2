@@ -18,8 +18,24 @@ class Bot1:
         self.bot_postion=self.identifyBotPostion();
         self.alpha=alpha;
         self.rat_detector_action_count=0;
+        self.init_rat_probability();
     
+    def init_rat_probability(self):
+        open_cells = np.argwhere(self.maze==OPENED);
+        self.rat_probability = np.zeros((self.grid_size, self.grid_size))
+        self.rat_probability[tuple(zip(*open_cells))] = 1 / len(open_cells)  
+        # Initialize belief structure (used for Bayes' updates after sensing)
+        self.belief = np.copy(self.rat_probability)  # Start with same prior
+
     def identifyBotPostion(self):
+        open_cells = np.argwhere(self.maze == OPENED) 
+        random_cells = random.sample(list(open_cells), 1)
+        initial_values = [BOT]
+
+        for (x, y) in random_cells:
+            self.maze[x][y] = initial_values.pop(0)
+            print(f"Initial postion of BOT at {(x,y)}")
+
         botKnowledgeBase= np.argwhere((self.maze == OPENED)| (self.maze == BOT));
         blockedCellSensingActions=0;
         previousMovedDirection=None;
@@ -170,9 +186,9 @@ class Bot1:
         else:
             (position_x,position_y)=(cell2[0],cell2[1]);
         manhattan_distance=abs(position_x-cell1[0])+abs(position_y-cell1[1])
-        ping_probability=round(math.exp(-(self.alpha) * (manhattan_distance - 1)),2);
+        # ping_probability=round(math.exp(-(self.alpha) * (manhattan_distance - 1)),2);
+        ping_probability=math.exp(-(self.alpha) * (manhattan_distance - 1));
         # print(f"Probaility computed for {cell1},{cell2} -> {ping_probability}");
-        self.rat_detector_action_count+=1;
         return ping_probability;
 
     def set_path(self):
@@ -187,7 +203,7 @@ class Bot1:
     def move_and_get_position(self):
         return self.path.pop(0)
 
-    def execute_strategy(self,maze,start,end):
+    def find_path(self,maze,start,end):
         print(f"start and end : {start},{end}")
         fringe=[(0,start)];
         self.start=start
@@ -220,52 +236,182 @@ class Bot1:
         print('failed')
         return False,prev,totalCosts;
 
-    def is_selected_cell_in_knowledge_base(self,cell,ratKnowledgeBase):
-        kb_set = set(map(tuple, ratKnowledgeBase));
-        (pos_x,pos_y)= (cell[0],cell[1]);
-        if (pos_x,pos_y) in kb_set:
+    def check_if_rat_sensed(self,curr_cell):
+        (rat_x,rat_y)=np.argwhere(self.maze == RAT)[0];
+        if (rat_x,rat_y)==curr_cell:
             return True;
         else:
             return False;
 
-    def run_simulation(self,num_time_steps=math.inf,show_animation=True):
+    def update_rat_probability(self, pos):
+        (x,y)=pos;
+        remaining_prob = 1 - self.rat_probability[x,y]  # Probability of rat being elsewhere
+        self.rat_probability[x,y] = 0  # Rat is definitely NOT here
+        ## add explanation here
+        if remaining_prob > 0:
+            self.rat_probability /= remaining_prob  # Redistribute probability
+
+    def update_belief(self, pos, if_beep_heard):
+        """
+        Update belief P(rat at (i,j) | beep) using Bayes' Rule.
+        Belief is different from rat_probability.
+        """
+        new_belief = np.zeros_like(self.belief)
+        if if_beep_heard:
+            print("Bot heard the beep");
+        else:
+            print("Bot not heard the beep");
+        
+        # Compute P(beep)
+        p_beep = 0
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                likelihood = self.getPingProbability(pos, (i, j))
+                if not if_beep_heard:
+                    likelihood=1-likelihood;
+                p_beep += self.rat_probability[i, j] * likelihood  # Marginalization
+
+        # Compute posterior belief
+        if p_beep > 0:
+            for i in range(self.grid_size):
+                for j in range(self.grid_size):
+                    likelihood = self.getPingProbability(pos, (i, j))
+                    if if_beep_heard:  # If bot hears a beep
+                        new_belief[i, j] = self.rat_probability[i, j] * likelihood / p_beep
+                    else:  # If no beep, reduce probability of nearby cells
+                        # new_belief[i, j] = self.rat_probability[i, j] * (1 - likelihood) / (1 - p_beep)
+                        new_belief[i, j] = self.rat_probability[i, j] * (1 - likelihood) / (p_beep)
+
+        self.belief=new_belief.copy();
+
+    def print_belief_grid(self):
+        print(f"Sum -> {np.sum(self.belief)}")
+        print("\nBelief Grid:")
+        for i in range(self.belief.shape[0]):
+            row_str = " | ".join([f"({i},{j}): {self.belief[i,j]:.4f}" for j in range(self.belief.shape[1])])
+            print(row_str)
+        print("\n" + "="*50)
+
+    def move_rat(self):
+        #Move Rat to random open direction.
+        (position_x,position_y)=np.argwhere(self.maze == RAT)[0];
+        open_neighbours=get_open_neighbours(self.maze,position_x,position_y)[1];
+        (new_pos_x,new_rat_y)=random.sample(open_neighbours, 1)[0];
+        self.maze[new_pos_x][new_rat_y]=RAT;
+        self.maze[position_x][position_y]=OPENED;
+        print(f"Rat's new position: {(new_pos_x,new_rat_y)}");
+
+    def predict_rat_movement(self):
+        """
+        Predicts the rat's new position based on movement probabilities.
+        when rat moves randomly to any adjacent open cell.
+        """
+        # Define movement directions (Up, Down, Left, Right)
+        MOVES = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+
+        new_rat_probability = np.zeros_like(self.rat_probability)
+        
+        for (i, j), prob in np.ndenumerate(self.rat_probability):
+            # Only consider nonzero probability cells, because zero means that Rat is definitely not in that cell. 
+            # So, it not required to estimate the movement from that cell.
+            if prob > 0: 
+                valid_moves = []
+                for move in MOVES:
+                    ni, nj = i + move[0], j + move[1]
+                    if 0 <= ni < self.maze.shape[0] and 0 <= nj < self.maze.shape[1] and self.maze[ni, nj] == OPENED:
+                        valid_moves.append((ni, nj))
+                
+                if valid_moves:
+                    prob_per_move = 1 / len(valid_moves)  # Probability split equally among valid moves
+                    for ni, nj in valid_moves:
+                        # prob means p(rat was in cell x)
+                        new_rat_probability[ni, nj] += prob * prob_per_move
+
+        self.rat_probability = new_rat_probability.copy()  # Update rat probability with predicted movement
+
+    def run_simulation(self,num_time_steps=math.inf,rat_movement=False):
         t=0;
         ## At time t = 0, bot starts searching for Space Rat
+        open_cells = np.argwhere(self.maze == OPENED) 
+        random_cells = random.sample(list(open_cells), 1)
+        initial_values = [RAT];
+        for (x, y) in random_cells:
+            self.maze[x][y] = initial_values.pop(0)
+            print(f"Initial postion of Rat at {(x,y)}")
         (x,y)=self.bot_postion;
-        # Get ping probability of Rat
-        # ping_probability=self.getPingProbability((x,y));
-        ratKnowledgeBase= np.argwhere((self.maze == OPENED) | (self.maze == RAT));
         bot_movements_count=0;
         # if ping_probability > 1:
         #     return [1,bot_movements_count, self.rat_detector_action_count];
         simulation_status=False;
+        useRatSensor=True;
+        destination=None;
         while t < num_time_steps:
             print(f"At timestep t={t}");
-            if (t%2 == 0):
-                ping_probability=self.getPingProbability((x,y)); # Get ping probability of Rat
-                # print(f"Probability computed to Rat: {ping_probability}");
-                ratKnowledgeBase=np.array(list(filter(lambda cell: ping_probability==self.getPingProbability((cell[0],cell[1]),(x,y)) ,ratKnowledgeBase)));
-                print(f"Total possibilites to compute: {len(ratKnowledgeBase)}")
-            if (t%2 == 1):
-                if((len(self.path)==0) or (not self.is_selected_cell_in_knowledge_base(self.path[-1],ratKnowledgeBase))):
+            
+            if(rat_movement):
+                # Move Rat in random direction
+                print("Rat moving in some random direction");
+                self.move_rat();
+                # Predict the Rat's 
+                print("Predict Rat's movement and update the Rat's KB");
+                self.predict_rat_movement();
+
+            # Check if Rat and Bot in same in cell
+            if(self.check_if_rat_sensed((x,y))):
+                print("Bot found the Space Rat.SUCCESS!")
+                simulation_status=True;
+                break;
+            
+            if (useRatSensor):
+                print('Starting to use Rat sensor');
+                print(f"{(x,y)}")
+                self.update_rat_probability((x,y))
+                if_beep_heard = np.random.rand() < self.getPingProbability((x,y))
+                self.rat_detector_action_count+=1;
+                self.update_belief((x,y), if_beep_heard);
+                print(f"Calculated Probability: {self.getPingProbability((x,y))}");
+                self.print_belief_grid();
+                print(f"{np.argwhere(self.belief == np.max(self.belief))}")
+                print(f"Total possibilites to compute: {len(np.argwhere(self.rat_probability != 0))}")
+                useRatSensor=False;
+                t=t+1;
+                continue;
+            if (not useRatSensor):
+                max_values=np.argwhere(self.belief == np.max(self.belief));
+                # destination=np.unravel_index(np.argmax(self.belief), self.belief.shape);
+                destination=tuple(random.choice(max_values));
+                print(f"Destination is {destination}");
+                if(not self.path):
                     print(f"Calculating the path")
-                    random_cell=random.sample(list(map(tuple, ratKnowledgeBase)),1)[0];
-                    self.execute_strategy(self.maze,(x,y),(random_cell[0],random_cell[1]));
-                    self.set_path();
+                    status=self.find_path(self.maze,(x,y),destination);
+                    if(not status[0]):
+                        print(f"No short path found :(");
+                        return;
+                    else:
+                        self.set_path();
                 (x,y)=self.move_and_get_position();
                 bot_movements_count+=1;
                 print(f"curr postion -> {(x,y)}")
-                if (self.getPingProbability((x,y)) > 1):  # Check if Bot has reached the Rat
+                # Check if Rat and Bot in same in cell
+                if(self.check_if_rat_sensed((x,y))):
                     print("Bot found the Space Rat.SUCCESS!")
                     simulation_status=True;
                     break;
+                else:
+                    self.rat_probability[x,y] = 0;
+                if (len(self.path) == 0):
+                    print("Rat not present in picked the destionation. Sense for Rat again");
+                    useRatSensor=True;
                 self.maze[x][y]=BOT;
                 prev_cell=self.prev[(x,y)];
                 if prev_cell is not None: self.maze[prev_cell[0]][prev_cell[1]]=PATH;
             # else:            
             #     self.maze[x][y]=PATH
-            yield self.maze;
+            # yield self.maze;
             t=t+1
-        data=[int(simulation_status),bot_movements_count, self.rat_detector_action_count];
+        data=[int(simulation_status),bot_movements_count, self.rat_detector_action_count,self.alpha,f"rat_movement={rat_movement}"];
         print(f"data -> {data}")
+        with open('bot1.csv',mode='a',newline='') as file:
+            writer=csv.writer(file);
+            writer.writerow(data);
         return data;

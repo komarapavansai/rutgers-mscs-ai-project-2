@@ -74,5 +74,5 @@ def update_grid(frame, grid_generator):
 
 def animation_function(grid_generator):
     generator= grid_generator;
-    animation=FuncAnimation(fig, partial(update_grid, grid_generator=generator), frames=generator, interval=1000, repeat=False)
+    animation=FuncAnimation(fig, partial(update_grid, grid_generator=generator), frames=generator, interval=1, repeat=False)
     plt.show()

@@ -82,10 +82,10 @@ class Ship:
                 self.maze[i][self.grid_size-1]=BLOCKED    
 
     def desigShipLayout(self):
-        # original_maze= self.maze.copy();
-        # trimmed_maze = np.array([row[1:self.grid_size-1] for row in self.maze[1:self.grid_size-1]]);
+        original_maze= self.maze.copy();
+        trimmed_maze = np.array([row[1:self.grid_size-1] for row in self.maze[1:self.grid_size-1]]);
         # print(trimmed_maze.shape)
-        # self.maze= trimmed_maze; self.grid_size=self.grid_size-2;
+        self.maze= trimmed_maze; self.grid_size=self.grid_size-2;
         while ( self.ifExpansionPossbile()):
             blockedCells = self.getBlockedCells(self.maze);
             random_cell = blockedCells[np.random.choice(blockedCells.shape[0])];
@@ -103,9 +103,9 @@ class Ship:
                 [row,col]=closedNeighbours[random.randint(0, len(closedNeighbours) - 1)];
                 self.maze[row][col]=OPENED;
                 count=count+1;
-        self.blockEdgeCells();
-        # self.grid_size=self.grid_size+2;
-        # for i in range(1, self.grid_size-1):
-        #     original_maze[i][1:self.grid_size-1] = self.maze[i-1]
-        # self.maze=original_maze.copy();
+        # self.blockEdgeCells();
+        self.grid_size=self.grid_size+2;
+        for i in range(1, self.grid_size-1):
+            original_maze[i][1:self.grid_size-1] = self.maze[i-1]
+        self.maze=original_maze.copy();
         print(f"The percent of open cells: {(len(np.argwhere(self.maze == OPENED))/(self.grid_size*self.grid_size))*100}%")
