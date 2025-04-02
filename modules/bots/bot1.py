@@ -371,7 +371,7 @@ class Bot1:
                 self.rat_detector_action_count+=1;
                 self.update_belief((x,y), if_beep_heard);
                 print(f"Calculated Probability: {self.getPingProbability((x,y))}");
-                self.print_belief_grid();
+                # self.print_belief_grid();
                 print(f"{np.argwhere(self.belief == np.max(self.belief))}")
                 print(f"Total possibilites to compute: {len(np.argwhere(self.rat_probability != 0))}")
                 useRatSensor=False;
@@ -412,7 +412,7 @@ class Bot1:
             t=t+1
         data=[int(simulation_status),bot_movements_count, self.rat_detector_action_count,self.alpha,f"rat_movement={rat_movement}"];
         print(f"data -> {data}")
-        with open('bot1.csv',mode='a',newline='') as file:
-            writer=csv.writer(file);
-            writer.writerow(data);
+        # with open('bot1.csv',mode='a',newline='') as file:
+        #     writer=csv.writer(file);
+        #     writer.writerow(data);
         return data;
