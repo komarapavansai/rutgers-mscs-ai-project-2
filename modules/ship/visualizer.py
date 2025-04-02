@@ -15,16 +15,28 @@ def generate_grid(grid):
 
     for i in range(grid_size):
         for j in range(grid_size):
-            if grid[i, j] == OPENED:
-                color = 'white'
-            elif grid[i, j] == RAT:
-                color = 'red'
-            elif grid[i, j] == BOT:
-                color = 'green'
-            elif grid[i, j] == START:
-                color = 'orange'
-            elif grid[i, j] == PATH:
-                color = 'blue'
+            # if grid[i, j] > 0 and grid[i,j] < 0.45:
+            #     color = '#00BFFF'
+            # elif grid[i, j] >=0.45 and grid[i,j] < 0.8:
+            #     color = '#BA55D3'
+            # elif grid[i, j] >=0.8 and grid[i,j] < 1:
+            #     color = '#32CD32'
+            if grid[i, j] > 0.6 and grid[i, j] < 1:
+                color = '#32CD32'  # Very confident
+            elif grid[i, j] > 0.2 and grid[i, j] <= 0.6 :
+                color = '#BA55D3'  # Strong confidence
+            elif grid[i, j] > 0 and grid[i, j] <=0.2 :
+                color = '#00BFFF'  # Moderate confidence
+            # if grid[i, j] == OPENED:
+            #     color = 'white'
+            # elif grid[i, j] == RAT:
+            #     color = 'red'
+            # elif grid[i, j] == BOT:
+            #     color = 'green'
+            # elif grid[i, j] == START:
+            #     color = 'orange'
+            # elif grid[i, j] == PATH:
+            #     color = 'blue'
             else:
                 color = 'gray'
             rect=patches.Rectangle((j, grid_size-i-1), 1, 1, linewidth=1, edgecolor='black', facecolor=color)
@@ -34,6 +46,29 @@ def generate_grid(grid):
     ax.set_yticks(np.arange(0, grid_size+1, 1))
     ax.grid(which='both', color='black', linestyle='-', linewidth=1)
     plt.draw();plt.show();
+
+def generate_heatmap(grid, cmap=plt.cm.Reds):
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.clear()
+    grid_size = grid.shape[0]
+
+    ax.set_xlim(0, grid_size)
+    ax.set_ylim(0, grid_size)
+
+    norm = plt.Normalize(vmin=np.min(grid), vmax=np.max(grid))  # normalize values relative to grid
+
+    for i in range(grid_size):
+        for j in range(grid_size):
+            value = grid[i, j]
+            color = cmap(norm(value)) if value > 0 else 'gray'  # gray for 0/blocked cells
+            rect = patches.Rectangle((j, grid_size - i - 1), 1, 1, linewidth=1, edgecolor='black', facecolor=color)
+            ax.add_patch(rect)
+
+    ax.set_xticks(np.arange(0, grid_size + 1, 1))
+    ax.set_yticks(np.arange(0, grid_size + 1, 1))
+    ax.grid(which='both', color='black', linestyle='-', linewidth=1)
+    plt.draw()
+    plt.show()
 
 fig, ax = plt.subplots(figsize=(8, 8))
 
