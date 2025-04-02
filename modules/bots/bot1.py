@@ -6,6 +6,7 @@ import numpy as np;
 import random;
 import csv;
 import matplotlib.pyplot as plt;
+from modules.ship.visualizer import generate_grid;
 
 class Bot1:
     def __init__(self,maze,alpha=0.1):
