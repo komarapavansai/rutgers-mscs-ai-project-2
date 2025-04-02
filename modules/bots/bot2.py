@@ -331,6 +331,27 @@ class Bot2:
 
         self.rat_probability = new_rat_probability.copy()  # Update rat probability with predicted movement
 
+    def get_clustered_sensing_locations(self,num_clusters=4):
+        H, W = self.maze.shape;
+        cluster_rows = int(math.sqrt(num_clusters))
+        cluster_cols = math.ceil(num_clusters / cluster_rows)
+        cluster_height = H // cluster_rows
+        cluster_width = W // cluster_cols
+
+        all_candidates = []
+        for i in range(cluster_rows):
+            for j in range(cluster_cols):
+                r_start, r_end = i * cluster_height, min((i + 1) * cluster_height, H)
+                c_start, c_end = j * cluster_width, min((j + 1) * cluster_width, W)
+                cluster_open = [(r, c) for r in range(r_start, r_end)
+                                for c in range(c_start, c_end) if self.maze[r][c] == OPENED]
+                if cluster_open:
+                    candidates = random.sample(cluster_open, min(len(cluster_open), 3))
+                    all_candidates.extend(candidates)
+
+        random.shuffle(all_candidates)
+        return all_candidates[:num_clusters] if len(all_candidates) >= num_clusters else all_candidates
+
     def run_simulation(self,num_time_steps=math.inf,rat_movement=False):
         t=0;
         ## At time t = 0, bot starts searching for Space Rat
@@ -346,9 +367,12 @@ class Bot2:
         #     return [1,bot_movements_count, self.rat_detector_action_count];
         simulation_status=False;
         useRatSensor=True;
-        num_sensing_iterations=10;
-        sense_locations=3;
+        num_sensing_iterations=20;
+        sensing_locations=self.get_clustered_sensing_locations(num_clusters=4);
+        print(f"Selected sensing cells: {sensing_locations}");
         destination=None;
+        sensing_index = 0;
+        botMoving=False;
         while t < num_time_steps:
             print(f"At timestep t={t}");
             
@@ -374,20 +398,25 @@ class Bot2:
                 self.rat_detector_action_count+=1;
                 self.update_belief((x,y), if_beep_heard);
                 print(f"Calculated Probability: {self.getPingProbability((x,y))}");
-                self.print_belief_grid();
+                # self.print_belief_grid();
                 print(f"{np.argwhere(self.belief == np.max(self.belief))}")
                 print(f"Total possibilites to compute: {len(np.argwhere(self.rat_probability != 0))}")
                 num_sensing_iterations=num_sensing_iterations-1;
-                useRatSensor=(num_sensing_iterations!=0);
                 if num_sensing_iterations == 0:
-                    generate_heatmap(self.belief/np.max(self.belief));
-                num_movements=5;
+                    useRatSensor=False;
+                    num_sensing_iterations=20;
+                    # generate_heatmap(self.belief/np.max(self.belief));
                 t=t+1;
                 continue;
             if (not useRatSensor):
-                max_values=np.argwhere(self.belief == np.max(self.belief));
-                # destination=np.unravel_index(np.argmax(self.belief), self.belief.shape);
-                destination=tuple(random.choice(max_values));
+                if (not(botMoving) and (sensing_index < len(sensing_locations))):
+                    destination = sensing_locations[sensing_index];
+                    print(f"Selected sensing location: {destination}");
+                    sensing_index += 1
+                else:
+                    max_values=np.argwhere(self.belief == np.max(self.belief));
+                    # destination=np.unravel_index(np.argmax(self.belief), self.belief.shape);
+                    destination=tuple(random.choice(max_values));
                 print(f"Destination is {destination}");
                 if(not self.path):
                     print(f"Calculating the path")
@@ -397,6 +426,7 @@ class Bot2:
                         return;
                     else:
                         self.set_path();
+                        botMoving=True;
                 (x,y)=self.move_and_get_position();
                 bot_movements_count+=1;
                 print(f"curr postion -> {(x,y)}")
@@ -408,22 +438,19 @@ class Bot2:
                 else:
                     self.rat_probability[x,y] = 0;
                 if (len(self.path) == 0):
+                    botMoving=False;
                     print("Rat not present in picked the destionation. Sense for Rat again");
                     useRatSensor=True;
                 self.maze[x][y]=BOT;
-                num_movements=num_movements-1;
-                if (num_movements==0):
-                    useRatSensor=True;
-                    num_sensing_iterations=20;
                 prev_cell=self.prev[(x,y)];
                 if prev_cell is not None: self.maze[prev_cell[0]][prev_cell[1]]=PATH;
             # else:            
             #     self.maze[x][y]=PATH
             # yield self.maze;
             t=t+1
-        # data=[int(simulation_status),bot_movements_count, self.rat_detector_action_count,self.alpha,f"rat_movement={rat_movement}"];
-        # print(f"data -> {data}")
-        # with open('bot1.csv',mode='a',newline='') as file:
+        data=[int(simulation_status),bot_movements_count, self.rat_detector_action_count,self.alpha,f"rat_movement={rat_movement}"];
+        print(f"data -> {data}")
+        # with open('bot2.csv',mode='a',newline='') as file:
         #     writer=csv.writer(file);
         #     writer.writerow(data);
-        # return data;
+        return data;
