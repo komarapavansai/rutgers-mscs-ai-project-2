@@ -16,7 +16,7 @@ class Bot1:
         self.path=[];
         self.maze = maze
         self.grid_size = maze.shape[0];
-        self.bot_postion=self.identifyBotPostion();
+        self.bot_postion=self.identifyBotPosition();
         self.alpha=alpha;
         self.rat_detector_action_count=0;
         self.init_rat_probability();
@@ -27,48 +27,79 @@ class Bot1:
         self.rat_probability[tuple(zip(*open_cells))] = 1 / len(open_cells)  
         # Initialize belief structure (used for Bayes' updates after sensing)
         self.belief = np.copy(self.rat_probability)  # Start with same prior
+    
+    def getBotCurrentPosition(self):
+        bot_pos = np.argwhere(self.maze == BOT)
+        if bot_pos.size == 0:
+            open_cells = np.argwhere(self.maze == OPENED)
+            if open_cells.size == 0:
+                raise Exception("No open cells available to place the BOT.")
+            random_cell = random.choice(open_cells)
+            x, y = random_cell
+            self.maze[x][y] = BOT
+            print(f"BOT was not found — randomly placed at: ({x}, {y})")
+            return (x, y)
+        return tuple(bot_pos[0])
+    
+    def identifyBotPosition(self):
+        botKnowledgeBase = np.argwhere((self.maze == OPENED) | (self.maze == BOT))
+        previousMovedDirection = None
+        recent_positions = []
+        wiggle_threshold = 5
 
-    def identifyBotPostion(self):
-        open_cells = np.argwhere(self.maze == OPENED) 
-        random_cells = random.sample(list(open_cells), 1)
-        initial_values = [BOT]
+        while True:
+            sensedBlockedCells = self.senseBlockedCells()[0]
+            print(f"Sensed blocked cells: {sensedBlockedCells}")
+            print(f"Knowledge base size before filtering: {len(botKnowledgeBase)}")
+            self.blockedCellSensingActions += 1
 
-        for (x, y) in random_cells:
-            self.maze[x][y] = initial_values.pop(0)
-            print(f"Initial postion of BOT at {(x,y)}")
+            botKnowledgeBase = np.array(list(filter(
+                lambda x: sensedBlockedCells == self.senseBlockedCells(x[0], x[1])[0],
+                botKnowledgeBase
+            )))
 
-        botKnowledgeBase= np.argwhere((self.maze == OPENED)| (self.maze == BOT));
-        blockedCellSensingActions=0;
-        previousMovedDirection=None;
-        while(True):
-            sensedBlockedCells= self.senseBlockedCells()[0]; # Sense the blocked cells around bot
-            print(f"No.of sensed blocked cells: {sensedBlockedCells}");
-            print(f"Total possibilites to compute: {len(botKnowledgeBase)}");
-            blockedCellSensingActions+=1;
-            # Eliminate the cells that doesn't satisfy the conditions
-            botKnowledgeBase= np.array(list(filter(lambda x: sensedBlockedCells==self.senseBlockedCells(x[0],x[1])[0],botKnowledgeBase)));
-            # Move the bot to direction which is commonly open to further eliminate the possibilities.
-            # if previousMovedDirection is None:
-            #     direction=self.findCommonOpenDirection(botKnowledgeBase);
-            direction=random.sample([(0, -1), (0, 1), (-1, 0), (1, 0)],1)[0];
-            print(f"common open direction: {direction}")
-            botMovementStatus=self.ifDirectionMovable(direction=direction);
-            botKnowledgeBase=np.array(list(filter(lambda x: botMovementStatus==self.ifDirectionMovable(direction,position=x),botKnowledgeBase)));
-            if(botMovementStatus and botKnowledgeBase.size > 0):
-                print(f"Bot moved to direction: {direction}");
-                botKnowledgeBase=botKnowledgeBase + np.array(direction);
-                self.moveBot(direction);
-                previousMovedDirection=direction;
-            if(not botMovementStatus):
-                print(f"Bot sensed blocked in common direction")
-                previousMovedDirection=None;
-            if(len(botKnowledgeBase)==1):
-                break;
-        
-        print(f"Bot position is identified at {botKnowledgeBase[0]}");
-        self.blockedCellSensingActions=blockedCellSensingActions;
-        print(f"Total blocked cells sensing actions made by bot: {self.blockedCellSensingActions}");
-        return (botKnowledgeBase[0][0],botKnowledgeBase[0][1]);
+            bot_current_position = self.getBotCurrentPosition()
+            recent_positions.append(bot_current_position)
+            if len(recent_positions) > wiggle_threshold:
+                recent_positions.pop(0)
+
+            is_wiggling = self.isBotWiggling(recent_positions, wiggle_threshold)
+
+            if previousMovedDirection is None or is_wiggling:
+                if is_wiggling:
+                    print("Wiggling detected! Choosing random direction to break loop.")
+                direction = random.choice([(0, -1), (0, 1), (-1, 0), (1, 0)])
+            else:
+                direction = self.findCommonOpenDirection(botKnowledgeBase)
+
+            print(f"Trying to move in direction: {direction}")
+            botMovementStatus = self.ifDirectionMovable(direction=direction)
+
+            botKnowledgeBase = np.array(list(filter(
+                lambda x: botMovementStatus == self.ifDirectionMovable(direction, position=x),
+                botKnowledgeBase
+            )))
+
+            if botMovementStatus and botKnowledgeBase.size > 0:
+                self.moveBot(direction)
+                botKnowledgeBase = botKnowledgeBase + np.array(direction)
+                previousMovedDirection = direction
+            else:
+                previousMovedDirection = None
+
+            if len(botKnowledgeBase) == 1:
+                print("Bot position successfully identified!")
+                break
+
+        print(f"Final bot position: {botKnowledgeBase[0]}")
+        print(f"Total blocked cell sensing actions: {self.blockedCellSensingActions}")
+        return (botKnowledgeBase[0][0], botKnowledgeBase[0][1])
+
+    def isBotWiggling(self, positions, threshold):
+        if len(positions) < threshold:
+            return False
+        return positions.count(positions[-1]) >= 3 or len(set(positions[-threshold:])) <= 2
+
 
     def moveBot(self,direction):
         botPosition=np.argwhere(self.maze == BOT)[0];
