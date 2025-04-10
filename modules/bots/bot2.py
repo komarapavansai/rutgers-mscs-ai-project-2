@@ -468,7 +468,7 @@ class Bot2:
                         self.triangulation_belief *= posterior
 
                     # Optional Heatmap visual: 
-                    generate_heatmap(self.triangulation_belief / np.max(self.triangulation_belief))
+                    # generate_heatmap(self.triangulation_belief / np.max(self.triangulation_belief))
 
                     # Reset sensing state
                     useRatSensor = False
@@ -520,7 +520,7 @@ class Bot2:
                     self.rat_probability[x,y] = 0;
                 if (len(self.path) == 0):
                     botMoving=False;
-                    print("Rat not present in picked the destionation. Sense for Rat again");
+                    print("Rat not present in picked the destination. Sense for Rat again");
                     self.rat_probability[x,y] = 0
                     self.belief[x,y] = 0
                     if (sensing_index < len(sensing_locations)):

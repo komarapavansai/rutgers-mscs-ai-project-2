@@ -6,7 +6,7 @@ import numpy as np;
 import random;
 import csv;
 import matplotlib.pyplot as plt;
-from modules.ship.visualizer import generate_grid;
+from modules.ship.visualizer import generate_grid,generate_heatmap;
 
 class Bot1:
     def __init__(self,maze,alpha=0.1):
@@ -284,6 +284,7 @@ class Bot1:
                         new_belief[i, j] = self.rat_probability[i, j] * (1 - likelihood) / (p_beep)
 
         self.belief=new_belief.copy();
+        # generate_heatmap(self.belief/np.max(self.belief));
 
     def print_belief_grid(self):
         print(f"Sum -> {np.sum(self.belief)}")
