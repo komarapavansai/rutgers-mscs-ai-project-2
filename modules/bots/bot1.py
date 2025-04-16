@@ -42,7 +42,16 @@ class Bot1:
         return tuple(bot_pos[0])
     
     def identifyBotPosition(self):
+        open_cells = np.argwhere(self.maze == OPENED) 
+        random_cells = random.sample(list(open_cells), 1)
+        initial_values = [BOT]
+
+        for (x, y) in random_cells:
+            self.maze[x][y] = initial_values.pop(0)
+            print(f"Initial postion of BOT at {(x,y)}")
+        
         botKnowledgeBase = np.argwhere((self.maze == OPENED) | (self.maze == BOT))
+        self.blockedCellSensingActions=0;
         previousMovedDirection = None
         recent_positions = []
         wiggle_threshold = 5
