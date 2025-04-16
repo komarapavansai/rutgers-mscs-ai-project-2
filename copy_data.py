@@ -1,14 +1,12 @@
 import csv
 import glob
 
-# Match all result files
+# Find all result files
 input_files = glob.glob('results/parallel_results_*.csv')
-
-# Output files
 bot1_file = 'bot1.csv'
 bot2_file = 'bot2.csv'
 
-# Open output files in append mode
+# Prepare writers for bot files (append mode)
 with open(bot1_file, mode='a', newline='') as b1file, \
      open(bot2_file, mode='a', newline='') as b2file:
 
@@ -17,24 +15,36 @@ with open(bot1_file, mode='a', newline='') as b1file, \
 
     for input_file in input_files:
         print(f"Processing: {input_file}")
-
-        with open(input_file, mode='r') as infile:
+        with open(input_file, mode='r', newline='') as infile:
             reader = csv.DictReader(infile)
-            for row in reader:
-                # Format rat_movement to "rat_movement=False" or "rat_movement=True"
-                rat_movement_str = f"rat_movement={row['rat_movement'].strip()}"
+            rows_bot1 = []
+            rows_bot2 = []
 
+            for row in reader:
                 out_row = [
                     row['success'],
                     row['bot_movements'],
                     row['sensor_actions'],
                     row['alpha'],
-                    rat_movement_str
+                    f"rat_movement={row['rat_movement']}"
                 ]
 
                 if row['bot'] == 'bot1':
-                    writer_bot1.writerow(out_row)
+                    rows_bot1.append(out_row)
                 elif row['bot'] == 'bot2':
-                    writer_bot2.writerow(out_row)
+                    rows_bot2.append(out_row)
 
-print("All rows copied to bot1.csv and bot2.csv with formatted rat_movement column")
+        # Append to each bot file
+        writer_bot1.writerows(rows_bot1)
+        writer_bot2.writerows(rows_bot2)
+
+        # Clear the result file after processing
+        with open(input_file, mode='w', newline='') as cleared_file:
+            writer = csv.writer(cleared_file)
+            writer.writerow([
+                'layout_id', 'run_id', 'bot', 'alpha',
+                'success', 'bot_movements', 'sensor_actions',
+                'rat_movement', 'runtime_seconds'
+            ])
+
+print("All results moved to bot1.csv and bot2.csv, result files cleared.")
