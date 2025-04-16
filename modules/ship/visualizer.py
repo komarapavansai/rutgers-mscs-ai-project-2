@@ -47,7 +47,7 @@ def generate_grid(grid):
     ax.grid(which='both', color='black', linestyle='-', linewidth=1)
     plt.draw();plt.show();
 
-def generate_heatmap(grid, cmap=plt.cm.Reds):
+def generate_heatmap(grid, cmap=plt.cm.Reds, pos=None):
     fig, ax = plt.subplots(figsize=(8, 8))
     ax.clear()
     grid_size = grid.shape[0]
@@ -60,7 +60,9 @@ def generate_heatmap(grid, cmap=plt.cm.Reds):
     for i in range(grid_size):
         for j in range(grid_size):
             value = grid[i, j]
-            color = cmap(norm(value)) if value > 0 else 'gray'  # gray for 0/blocked cells
+            color = cmap(norm(value)) if value > 0 else 'white'  # white for 0/blocked cells
+            if pos == (i,j):
+                color = 'blue' 
             rect = patches.Rectangle((j, grid_size - i - 1), 1, 1, linewidth=1, edgecolor='black', facecolor=color)
             ax.add_patch(rect)
 

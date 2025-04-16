@@ -20,7 +20,7 @@ class Bot1:
         self.alpha=alpha;
         self.rat_detector_action_count=0;
         self.init_rat_probability();
-    
+
     def init_rat_probability(self):
         open_cells = np.argwhere(self.maze==OPENED);
         self.rat_probability = np.zeros((self.grid_size, self.grid_size))
@@ -325,6 +325,14 @@ class Bot1:
             print(row_str)
         print("\n" + "="*50)
 
+    def print_rat_probability(self):
+        print(f"Sum -> {np.sum(self.rat_probability)}")
+        print("\nRat probability Grid:")
+        for i in range(self.rat_probability.shape[0]):
+            row_str = " | ".join([f"({i},{j}): {self.rat_probability[i,j]:.4f}" for j in range(self.rat_probability.shape[1])])
+            print(row_str)
+        print("\n" + "="*50)
+
     def move_rat(self):
         #Move Rat to random open direction.
         (position_x,position_y)=np.argwhere(self.maze == RAT)[0];
@@ -351,7 +359,7 @@ class Bot1:
                 valid_moves = []
                 for move in MOVES:
                     ni, nj = i + move[0], j + move[1]
-                    if 0 <= ni < self.maze.shape[0] and 0 <= nj < self.maze.shape[1] and self.maze[ni, nj] == OPENED:
+                    if 0 <= ni < self.maze.shape[0] and 0 <= nj < self.maze.shape[1] and self.maze[ni, nj] in {OPENED, BOT}:
                         valid_moves.append((ni, nj))
                 
                 if valid_moves:
@@ -380,7 +388,7 @@ class Bot1:
         destination=None;
         while t < num_time_steps:
             print(f"At timestep t={t}");
-            
+
             if(rat_movement):
                 # Move Rat in random direction
                 print("Rat moving in some random direction");

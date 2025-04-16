@@ -327,7 +327,7 @@ class Bot2:
                 valid_moves = []
                 for move in MOVES:
                     ni, nj = i + move[0], j + move[1]
-                    if 0 <= ni < self.maze.shape[0] and 0 <= nj < self.maze.shape[1] and self.maze[ni, nj] == OPENED:
+                    if 0 <= ni < self.maze.shape[0] and 0 <= nj < self.maze.shape[1] and self.maze[ni, nj] in {OPENED, BOT}:
                         valid_moves.append((ni, nj))
                 
                 if valid_moves:
@@ -386,7 +386,6 @@ class Bot2:
 
     def run_simulation(self,num_time_steps=math.inf,rat_movement=False):
         t=0;
-        ## At time t = 0, bot starts searching for Space Rat
         open_cells = np.argwhere(self.maze == OPENED) 
         random_cells = random.sample(list(open_cells), 1)
         initial_values = [RAT];
@@ -395,10 +394,7 @@ class Bot2:
             print(f"Initial postion of Rat at {(x,y)}")
         (x,y)=self.bot_postion;
         bot_movements_count=0;
-        # if ping_probability > 1:
-        #     return [1,bot_movements_count, self.rat_detector_action_count];
 
-        # Initialize prior belief
         valid_cells = [(i, j) for i, j in open_cells if 0 < i < self.grid_size - 1 and 0 < j < self.grid_size - 1]
         for (i, j) in valid_cells:
             self.rat_probability[i, j] = 1 / len(valid_cells)
@@ -408,133 +404,114 @@ class Bot2:
         useRatSensor=True;
         num_sensing_iterations=20;
         sensing_counter = 0;
-        sensing_locations=self.get_clustered_sensing_locations(num_clusters=4);
-        print(f"Selected sensing cells: {sensing_locations}");
+        print("Selected center sensing")
         destination=None;
-        sensing_index = 0;
         beep_count = 0;
         self.triangulation_belief=None
         botMoving=False;
+        visited_locations = set()
+
         while t < num_time_steps:
             print(f"At timestep t={t}");
-            
+
             if(rat_movement):
-                # Move Rat in random direction
                 print("Rat moving in some random direction");
                 self.move_rat();
-                # Predict the Rat's 
                 print("Predict Rat's movement and update the Rat's KB");
                 self.predict_rat_movement();
 
-            # Check if Rat and Bot in same in cell
             if(self.check_if_rat_sensed((x,y))):
                 print("Bot found the Space Rat.SUCCESS!")
                 simulation_status=True;
                 break;
-            
+
             if (useRatSensor):
-                print('Starting to use Rat sensor');
-                MAX_SENSING_ITERATIONS = 50  # Safety limit to avoid infinite loop
-                BEEP_TARGET = 5
-                print(f"{(x,y)}")
+                print(f"Sensing from {(x,y)}")
                 self.update_rat_probability((x,y))
-                if_beep_heard = np.random.rand() < self.getPingProbability((x,y))
-                self.rat_detector_action_count+=1;
-                if if_beep_heard:
-                    beep_count += 1
 
-                sensing_counter += 1
+                sensing_counter = 0
+                beep_count = 0
 
-                if sensing_counter == num_sensing_iterations:
-                # if beep_count >= BEEP_TARGET or sensing_counter >= MAX_SENSING_ITERATIONS:
-                    print(f"Total beeps heard from {(x, y)}: {beep_count}")
-                    ring_likelihood = self.generate_ring_likelihood(
-                        grid_shape=self.belief.shape,
-                        bot_pos=(x, y),
-                        num_beeps=beep_count,
-                        num_sensing_iterations=num_sensing_iterations,
-                        alpha=self.alpha
-                    )
-                    ring_likelihood += 1e-9  # Prevents zero multiplication collapse
-                    ring_likelihood = self.mask_blocked_and_edge_cells(ring_likelihood)
+                while sensing_counter < num_sensing_iterations:
+                    # print(f"log: {sensing_counter}")
+                    if_beep_heard = np.random.rand() < self.getPingProbability((x,y))
+                    self.rat_detector_action_count+=1;
+                    if if_beep_heard:
+                        beep_count += 1
+                    sensing_counter += 1
 
-                    posterior = ring_likelihood * self.rat_probability
-                    posterior = self.mask_blocked_and_edge_cells(posterior)
-                    posterior /= np.sum(posterior)
+                print(f"Total beeps heard from {(x, y)}: {beep_count}")
+                ring_likelihood = self.generate_ring_likelihood(
+                    grid_shape=self.belief.shape,
+                    bot_pos=(x, y),
+                    num_beeps=beep_count,
+                    num_sensing_iterations=num_sensing_iterations,
+                    alpha=self.alpha
+                )
+                ring_likelihood += 1e-9
+                ring_likelihood = self.mask_blocked_and_edge_cells(ring_likelihood)
 
-                    if self.triangulation_belief is None:
-                        self.triangulation_belief = posterior
-                    else:
-                        self.triangulation_belief *= posterior
+                posterior = ring_likelihood * self.rat_probability
+                posterior = self.mask_blocked_and_edge_cells(posterior)
+                posterior /= np.sum(posterior)
 
-                    # Optional Heatmap visual: 
-                    # generate_heatmap(self.triangulation_belief / np.max(self.triangulation_belief))
-
-                    # Reset sensing state
-                    useRatSensor = False
-                    sensing_counter = 0
-                    beep_count = 0
-                    sensing_index += 1
-
-                    print(f"logging the sensing_index: {sensing_index}")
-
-                    # If all sensing locations completed, apply triangulated belief
-                    if sensing_index >= len(sensing_locations):
-                        self.triangulation_belief = self.mask_blocked_and_edge_cells(self.triangulation_belief)
-                        self.belief = self.triangulation_belief
-                        self.belief /= np.sum(self.belief)
-                        print("Final belief grid updated from triangulation!")
-
-                t=t+1;
-                continue;
-            if (not useRatSensor):
-                if (not(botMoving) and (sensing_index < len(sensing_locations))):
-                    destination = sensing_locations[sensing_index];
-                    print(f"Selected sensing location: {destination}");
-                    # sensing_index += 1
+                if self.triangulation_belief is None:
+                    self.triangulation_belief = posterior
                 else:
-                    if (not botMoving):
-                        max_values=np.argwhere(self.belief == np.max(self.belief));
-                        # destination=np.unravel_index(np.argmax(self.belief), self.belief.shape);
-                        destination=tuple(random.choice(max_values));
-                print(f"Destination is {destination}");
-                if(not self.path):
-                    print(f"Calculating the path")
-                    status=self.find_path(self.maze,(x,y),destination);
-                    if(not status[0]):
-                        print(f"No short path found :(");
+                    self.triangulation_belief *= posterior
+
+                self.triangulation_belief = self.mask_blocked_and_edge_cells(self.triangulation_belief)
+                self.belief = self.triangulation_belief
+                self.belief /= np.sum(self.belief)
+
+                # Optional Heatmap visual: 
+                generate_heatmap(self.belief / np.max(self.belief),pos=(x,y))
+
+                max_values = np.argwhere(self.belief == np.max(self.belief))
+                destination = tuple(random.choice([cell for cell in max_values if tuple(cell) not in visited_locations]))
+                visited_locations.add(destination)
+                useRatSensor = False
+                botMoving = True
+
+                t += 1
+                continue
+
+            if (not useRatSensor):
+                if not self.path:
+                    print(f"Calculating the path to {destination}")
+                    status = self.find_path(self.maze, (x,y), destination);
+                    if not status[0]:
+                        print(f"No short path found :(")
                         print(f"neibours: {get_open_neighbours(self.maze,x,y)}")
                         return;
                     else:
                         self.set_path();
-                        botMoving=True;
-                (x,y)=self.move_and_get_position();
-                bot_movements_count+=1;
+                        botMoving = True
+
+                (x,y) = self.move_and_get_position();
+                bot_movements_count += 1;
                 print(f"curr postion -> {(x,y)}")
-                # Check if Rat and Bot in same in cell
+
                 if(self.check_if_rat_sensed((x,y))):
                     print("Bot found the Space Rat.SUCCESS!")
-                    simulation_status=True;
+                    simulation_status = True;
                     break;
                 else:
                     self.rat_probability[x,y] = 0;
-                if (len(self.path) == 0):
-                    botMoving=False;
+
+                if len(self.path) == 0:
+                    botMoving = False
                     print("Rat not present in picked the destination. Sense for Rat again");
                     self.rat_probability[x,y] = 0
                     self.belief[x,y] = 0
-                    if (sensing_index < len(sensing_locations)):
-                        useRatSensor=True;
-                self.maze[x][y]=BOT;
-                prev_cell=self.prev[(x,y)];
-                if prev_cell is not None: self.maze[prev_cell[0]][prev_cell[1]]=PATH;
-            # else:            
-            #     self.maze[x][y]=PATH
+                    useRatSensor = True
+
+                self.maze[x][y] = BOT;
+                prev_cell = self.prev[(x,y)];
+                if prev_cell is not None: self.maze[prev_cell[0]][prev_cell[1]] = PATH;
             # yield self.maze;
-            t=t+1
-        data=[int(simulation_status),bot_movements_count, self.rat_detector_action_count,self.alpha,f"rat_movement={rat_movement}"];
+            t += 1
+
+        data = [int(simulation_status), bot_movements_count, self.rat_detector_action_count, self.alpha, f"rat_movement={rat_movement}"];
         print(f"data -> {data}")
-        # with open('bot2.csv',mode='a',newline='') as file:
-        #     writer=csv.writer(file);
-        #     writer.writerow(data);
         return data;

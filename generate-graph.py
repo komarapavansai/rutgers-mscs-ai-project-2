@@ -11,13 +11,15 @@ colors = ['blue', 'green']
 # Dictionaries to store grouped data
 bot_movements = {bot: defaultdict(list) for bot in bot_labels}
 sensor_actions = {bot: defaultdict(list) for bot in bot_labels}
+rat_movement=False;
 
 # Read CSV files and extract data per alpha (rat_movement = False only)
 for bot_label, file_name in zip(bot_labels, bot_files):
     with open(file_name, mode='r') as file:
         reader = csv.reader(file)
         for row in reader:
-            if len(row) >= 5 and 'false' in row[4].lower():
+            # if len(row) >= 5 and 'false' in row[4].lower():
+            if len(row) >= 5 and str(rat_movement).lower() in row[4].lower():
                 alpha = round(float(row[3]), 2)
                 bot_moves = int(row[1])
                 sensor_uses = int(row[2])
@@ -37,10 +39,11 @@ for i, bot_label in enumerate(bot_labels):
 
 # Subplot 1 - Bot Movements
 axs[0].set_ylabel('Avg Bot Movements', fontsize=14)
-axs[0].set_title('Bot Movements and Sensor Usage vs Alpha (Rat Stationary)', fontsize=16)
+axs[0].set_title('Bot Movements and Sensor Usage vs Alpha (Rat Stationary)', fontsize=16) if not rat_movement else\
+    axs[0].set_title('Bot Movements and Sensor Usage vs Alpha (Moving Rat)', fontsize=16) 
 axs[0].grid(True)
 axs[0].legend()
-axs[0].set_ylim(0, 4000)
+# axs[0].set_ylim(0, 4000)
 
 # Subplot 2 - Sensor Usage
 axs[1].set_xlabel('Alpha (Sensor Sensitivity)', fontsize=14)
@@ -51,6 +54,7 @@ axs[1].set_ylim(0)  # auto upper
 
 # X-axis range
 plt.xticks(np.round(np.arange(0.1, 2.1, 0.1), 2))
+plt.xlim(0,1)
 
 # Layout fix
 plt.tight_layout()
