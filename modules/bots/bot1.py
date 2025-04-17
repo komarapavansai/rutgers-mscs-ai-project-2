@@ -288,7 +288,8 @@ class Bot1:
         (x,y)=pos;
         remaining_prob = 1 - self.rat_probability[x,y]  # Probability of rat being elsewhere
         self.rat_probability[x,y] = 0  # Rat is definitely NOT here
-        ## add explanation here
+        ## When the Rat is not identified in certain cell, then we update the Rat's knowledge base in the following way.
+        ## Detailed explanation is given in the project report.
         if remaining_prob > 0:
             self.rat_probability /= remaining_prob  # Redistribute probability
 

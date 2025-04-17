@@ -256,42 +256,10 @@ class Bot2:
         (x,y)=pos;
         remaining_prob = 1 - self.rat_probability[x,y]  # Probability of rat being elsewhere
         self.rat_probability[x,y] = 0  # Rat is definitely NOT here
-        ## add explanation here
+        ## When the Rat is not identified in certain cell, then we update the Rat's knowledge base in the following way.
+        ## Detailed explanation is given in the project report.
         if remaining_prob > 0:
             self.rat_probability /= remaining_prob  # Redistribute probability
-
-    def update_belief(self, pos, if_beep_heard):
-        """
-        Update belief P(rat at (i,j) | beep) using Bayes' Rule.
-        Belief is different from rat_probability.
-        """
-        new_belief = np.zeros_like(self.belief)
-        if if_beep_heard:
-            print("Bot heard the beep");
-        else:
-            print("Bot not heard the beep");
-        
-        # Compute P(beep)
-        p_beep = 0
-        for i in range(self.grid_size):
-            for j in range(self.grid_size):
-                likelihood = self.getPingProbability(pos, (i, j))
-                if not if_beep_heard:
-                    likelihood=1-likelihood;
-                p_beep += self.rat_probability[i, j] * likelihood  # Marginalization
-
-        # Compute posterior belief
-        if p_beep > 0:
-            for i in range(self.grid_size):
-                for j in range(self.grid_size):
-                    likelihood = self.getPingProbability(pos, (i, j))
-                    if if_beep_heard:  # If bot hears a beep
-                        new_belief[i, j] = self.rat_probability[i, j] * likelihood / p_beep
-                    else:  # If no beep, reduce probability of nearby cells
-                        # new_belief[i, j] = self.rat_probability[i, j] * (1 - likelihood) / (1 - p_beep)
-                        new_belief[i, j] = self.rat_probability[i, j] * (1 - likelihood) / (p_beep)
-
-        self.belief=new_belief.copy();
 
     def print_belief_grid(self):
         print(f"Sum -> {np.sum(self.belief)}")
@@ -345,27 +313,6 @@ class Bot2:
                 if self.maze[i, j] == BLOCKED or i == 0 or j == 0 or i == grid.shape[0]-1 or j == grid.shape[1]-1:
                     masked[i, j] = 0
         return masked
-
-    def get_clustered_sensing_locations(self,num_clusters=4):
-        H, W = self.maze.shape;
-        cluster_rows = int(math.sqrt(num_clusters))
-        cluster_cols = math.ceil(num_clusters / cluster_rows)
-        cluster_height = H // cluster_rows
-        cluster_width = W // cluster_cols
-
-        all_candidates = []
-        for i in range(cluster_rows):
-            for j in range(cluster_cols):
-                r_start, r_end = i * cluster_height, min((i + 1) * cluster_height, H)
-                c_start, c_end = j * cluster_width, min((j + 1) * cluster_width, W)
-                cluster_open = [(r, c) for r in range(r_start, r_end)
-                                for c in range(c_start, c_end) if self.maze[r][c] == OPENED]
-                if cluster_open:
-                    candidates = random.sample(cluster_open, min(len(cluster_open), 3))
-                    all_candidates.extend(candidates)
-
-        random.shuffle(all_candidates)
-        return all_candidates[:num_clusters] if len(all_candidates) >= num_clusters else all_candidates
 
     def generate_ring_likelihood(self,grid_shape, bot_pos, num_beeps, num_sensing_iterations, alpha):
         likelihood = np.zeros(grid_shape)
@@ -465,7 +412,7 @@ class Bot2:
                 self.belief /= np.sum(self.belief)
 
                 # Optional Heatmap visual: 
-                generate_heatmap(self.belief / np.max(self.belief),pos=(x,y))
+                # generate_heatmap(self.belief / np.max(self.belief),pos=(x,y))
 
                 max_values = np.argwhere(self.belief == np.max(self.belief))
                 destination = tuple(random.choice([cell for cell in max_values if tuple(cell) not in visited_locations]))
