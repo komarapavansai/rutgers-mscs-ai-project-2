@@ -7,3 +7,8 @@ ENV/
 env.bak/
 venv.bak/
 /.vscode
+
+/tmp/
+/.runtime/
+/.venv/
+/tests

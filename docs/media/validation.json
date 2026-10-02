@@ -1,0 +1,228 @@
+{
+  "configuration": {
+    "seeds": 12,
+    "size": 30,
+    "alpha": 0.12,
+    "limit": 400,
+    "moving": false,
+    "output": "docs/media/validation.json"
+  },
+  "results": [
+    {
+      "seed": 0,
+      "bot": "Bot 1",
+      "status": "Captured",
+      "actions": 125,
+      "moves": 110,
+      "wall_senses": 4,
+      "rat_senses": 11
+    },
+    {
+      "seed": 0,
+      "bot": "Bot 2",
+      "status": "Captured",
+      "actions": 204,
+      "moves": 59,
+      "wall_senses": 5,
+      "rat_senses": 140
+    },
+    {
+      "seed": 1,
+      "bot": "Bot 1",
+      "status": "Budget exhausted",
+      "actions": 400,
+      "moves": 376,
+      "wall_senses": 13,
+      "rat_senses": 11
+    },
+    {
+      "seed": 1,
+      "bot": "Bot 2",
+      "status": "Captured",
+      "actions": 63,
+      "moves": 19,
+      "wall_senses": 4,
+      "rat_senses": 40
+    },
+    {
+      "seed": 2,
+      "bot": "Bot 1",
+      "status": "Captured",
+      "actions": 208,
+      "moves": 192,
+      "wall_senses": 8,
+      "rat_senses": 8
+    },
+    {
+      "seed": 2,
+      "bot": "Bot 2",
+      "status": "Captured",
+      "actions": 80,
+      "moves": 35,
+      "wall_senses": 5,
+      "rat_senses": 40
+    },
+    {
+      "seed": 3,
+      "bot": "Bot 1",
+      "status": "Captured",
+      "actions": 34,
+      "moves": 26,
+      "wall_senses": 7,
+      "rat_senses": 1
+    },
+    {
+      "seed": 3,
+      "bot": "Bot 2",
+      "status": "Captured",
+      "actions": 229,
+      "moves": 86,
+      "wall_senses": 3,
+      "rat_senses": 140
+    },
+    {
+      "seed": 4,
+      "bot": "Bot 1",
+      "status": "Captured",
+      "actions": 372,
+      "moves": 310,
+      "wall_senses": 15,
+      "rat_senses": 47
+    },
+    {
+      "seed": 4,
+      "bot": "Bot 2",
+      "status": "Captured",
+      "actions": 277,
+      "moves": 122,
+      "wall_senses": 15,
+      "rat_senses": 140
+    },
+    {
+      "seed": 5,
+      "bot": "Bot 1",
+      "status": "Captured",
+      "actions": 282,
+      "moves": 255,
+      "wall_senses": 17,
+      "rat_senses": 10
+    },
+    {
+      "seed": 5,
+      "bot": "Bot 2",
+      "status": "Captured",
+      "actions": 211,
+      "moves": 126,
+      "wall_senses": 5,
+      "rat_senses": 80
+    },
+    {
+      "seed": 6,
+      "bot": "Bot 1",
+      "status": "Captured",
+      "actions": 40,
+      "moves": 29,
+      "wall_senses": 10,
+      "rat_senses": 1
+    },
+    {
+      "seed": 6,
+      "bot": "Bot 2",
+      "status": "Captured",
+      "actions": 175,
+      "moves": 72,
+      "wall_senses": 3,
+      "rat_senses": 100
+    },
+    {
+      "seed": 7,
+      "bot": "Bot 1",
+      "status": "Captured",
+      "actions": 368,
+      "moves": 341,
+      "wall_senses": 13,
+      "rat_senses": 14
+    },
+    {
+      "seed": 7,
+      "bot": "Bot 2",
+      "status": "Captured",
+      "actions": 308,
+      "moves": 110,
+      "wall_senses": 18,
+      "rat_senses": 180
+    },
+    {
+      "seed": 8,
+      "bot": "Bot 1",
+      "status": "Captured",
+      "actions": 194,
+      "moves": 184,
+      "wall_senses": 4,
+      "rat_senses": 6
+    },
+    {
+      "seed": 8,
+      "bot": "Bot 2",
+      "status": "Captured",
+      "actions": 112,
+      "moves": 48,
+      "wall_senses": 4,
+      "rat_senses": 60
+    },
+    {
+      "seed": 9,
+      "bot": "Bot 1",
+      "status": "Captured",
+      "actions": 96,
+      "moves": 88,
+      "wall_senses": 2,
+      "rat_senses": 6
+    },
+    {
+      "seed": 9,
+      "bot": "Bot 2",
+      "status": "Captured",
+      "actions": 306,
+      "moves": 124,
+      "wall_senses": 2,
+      "rat_senses": 180
+    },
+    {
+      "seed": 10,
+      "bot": "Bot 1",
+      "status": "Captured",
+      "actions": 223,
+      "moves": 196,
+      "wall_senses": 10,
+      "rat_senses": 17
+    },
+    {
+      "seed": 10,
+      "bot": "Bot 2",
+      "status": "Captured",
+      "actions": 136,
+      "moves": 46,
+      "wall_senses": 10,
+      "rat_senses": 80
+    },
+    {
+      "seed": 11,
+      "bot": "Bot 1",
+      "status": "Captured",
+      "actions": 356,
+      "moves": 327,
+      "wall_senses": 7,
+      "rat_senses": 22
+    },
+    {
+      "seed": 11,
+      "bot": "Bot 2",
+      "status": "Captured",
+      "actions": 308,
+      "moves": 141,
+      "wall_senses": 7,
+      "rat_senses": 160
+    }
+  ]
+}
